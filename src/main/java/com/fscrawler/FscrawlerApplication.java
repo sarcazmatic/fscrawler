@@ -22,7 +22,6 @@ import java.util.Set;
 public class FscrawlerApplication {
 
     private static final Logger log = LoggerFactory.getLogger(FscrawlerApplication.class);
-
     private static final String SOURCE_URL = "https://fstravel.com/actions/ranneye-bronirovaniye-leto-2026";
     private static final String TARGET_FRAGMENT = "fstravel.com/searchtour/country";
     private static final String NO_RESULTS_TEXT = "Мы не нашли вариантов";
@@ -34,8 +33,8 @@ public class FscrawlerApplication {
 
     @Bean
     RestTemplate restTemplate(RestTemplateBuilder builder) {
-        log.debug("Создание RestTemplate с таймаутами");
-        return builder
+      log.debug("Создание RestTemplate с таймаутами");
+      return builder
                 .setConnectTimeout(Duration.ofSeconds(10))
                 .setReadTimeout(Duration.ofSeconds(20))
                 .build();

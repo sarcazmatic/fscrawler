@@ -1,5 +1,7 @@
 package com.fscrawler;
 
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -12,19 +14,39 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @SpringBootApplication
 public class FscrawlerApplication {
 
     private static final Logger log = LoggerFactory.getLogger(FscrawlerApplication.class);
-    private static final String SOURCE_URL = "https://fstravel.com/actions/ranneye-bronirovaniye-leto-2026";
-    private static final String TARGET_FRAGMENT = "fstravel.com/searchtour/country";
+    private static final List<String> SOURCE_URLS = new ArrayList<>();
+    private static final String SEARCHCOUNTRY_FRAGMENT = "fstravel.com/searchtour/";
+    private static final String SEARCHHOTEL_FRAGMENT = "fstravel.com/searchhotel/";
+    private static final String HOTEL_FRAGMENT = "fstravel.com/hotel/";
     private static final String NO_RESULTS_TEXT = "Мы не нашли вариантов";
+    private static final String QUICK_SELECTION_FAIL = "Поиск не дал результатов";
+    private static final String ZERO_OFFERS = "найдено 0 предложений";
+    private static final String MAIN_PAGE_SLIDER_FINDER = "buttonLink&quot;:&quot;";
 
     public static void main(String[] args) {
         log.info("Запуск приложения fscrawler");
@@ -33,31 +55,105 @@ public class FscrawlerApplication {
 
     @Bean
     RestTemplate restTemplate(RestTemplateBuilder builder) {
-      log.debug("Создание RestTemplate с таймаутами");
-      return builder
-                .setConnectTimeout(Duration.ofSeconds(10))
-                .setReadTimeout(Duration.ofSeconds(20))
+        log.debug("Создание RestTemplate с таймаутами");
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(60))
+                .setReadTimeout(Duration.ofSeconds(120))
                 .build();
+    }
+
+    @Bean
+    public List<String> linksImporter() throws IOException, CsvException {
+        String spreadsheetId = "1H0nXQfaWJmCYMskwa04ZMKGfuoUMHZC6h4SwmEusZE0";
+        String sheetGid = "0";
+
+        String urlStr = String.format(
+                "https://docs.google.com/spreadsheets/d/%s/export?format=csv&gid=%s",
+                spreadsheetId, sheetGid
+        );
+
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+
+        try (CSVReader reader = new CSVReader(new InputStreamReader(conn.getInputStream()))) {
+            reader.readAll().forEach(r -> SOURCE_URLS.add(r[0]));
+            log.info("Найдено " + SOURCE_URLS.size() + " ссылок.");
+            return SOURCE_URLS;
+        }
     }
 
     @Bean
     CommandLineRunner crawl(RestTemplate restTemplate) {
         log.debug("Инициализация CommandLineRunner для обхода ссылок");
+        String[] strings = fetchBody(restTemplate, "https://www.fstravel.com").split("buttonLink&quot;:&quot;");
+        List<String> sliderLinks = new ArrayList<>();
+        for (int i = 2; i < strings.length; i++) {
+            String extractedSliderLink = strings[i].substring(0, strings[i].indexOf('&')).replace("\\", "");
+            StringBuilder finalExtractedSliderLink = new StringBuilder();
+            if (extractedSliderLink.startsWith("https://fstravel.com")) {
+                sliderLinks.add(extractedSliderLink);
+            } else if (extractedSliderLink.startsWith("https://")) {
+            } else {
+                if (extractedSliderLink.startsWith("/")) {
+                    finalExtractedSliderLink.append("https://fstravel.com").append(extractedSliderLink);
+                } else {
+                    finalExtractedSliderLink.append("https://fstravel.com/").append(extractedSliderLink);
+                }
+                sliderLinks.add(finalExtractedSliderLink.toString());
+            }
+        }
+        for (String s : sliderLinks) {
+            log.info("Обработали ссылку -- {}", s);
+        }
         return args -> {
-            log.info("Начало обхода страницы: {}", SOURCE_URL);
-            String html = fetchBody(restTemplate, SOURCE_URL);
-            if (html == null) {
-                log.error("Не удалось загрузить страницу: {}", SOURCE_URL);
-                System.err.println("Не удалось загрузить страницу: " + SOURCE_URL);
-                return;
-            }
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+            String fileName = LocalDateTime.now(ZoneId.of("Europe/Moscow")).format(formatter) + ".csv";
+            try {
+                Path path = Paths.get(fileName);
+                List<String> rows = new ArrayList<>();
 
-            Set<String> links = extractTargetLinks(html, SOURCE_URL);
-            log.info("Найдено {} целевых ссылок", links.size());
-            for (String link : links) {
-                checkLink(restTemplate, link);
+                for (String s : SOURCE_URLS) {
+                    log.info("Начало обхода страницы: {}", s);
+                    rows.add("Начало обхода страницы: " + s);
+                    String html = fetchBody(restTemplate, s);
+                    if (html == null) {
+                        log.error("Не удалось загрузить страницу: {}", s);
+                        rows.add("ПРОБЛЕМА! Не удалось загрузить страницу: " + s);
+                        return;
+                    } else if (html.contains(QUICK_SELECTION_FAIL)) {
+                        log.error("На странице {} ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ", s);
+                        rows.add("ОШИБКА! На странице " + s + " ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ");
+                        return;
+                    }
+
+                    Set<String> links = extractTargetLinks(html, s);
+                    log.info("Найдено {} целевых ссылок", links.size());
+                    int ok = 0;
+                    int no = 0;
+                    for (String link : links) {
+                        if (checkLink(restTemplate, link, s, rows)) {
+                            ok++;
+                        } else {
+                            no++;
+                        }
+                    }
+                    log.info("Обход ссылок завершен. На странице " + s + " успешно открыто: " + ok + ". Неуспешно: " + no);
+                    rows.add("Обход ссылок завершен. На странице " + s + " успешно открыто: " + ok + ". Неуспешно: " + no + "\n");
+
+                }
+                String rowFinal = rows.stream()
+                        .collect(Collectors.joining("\n"));
+                Files.writeString(
+                        path,
+                        rowFinal + System.lineSeparator(),
+                        StandardCharsets.UTF_8,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.APPEND
+                );
+            } catch (IOException e) {
+                throw new RuntimeException("Ошибка при записи CSV: " + fileName, e);
             }
-            log.info("Обход ссылок завершен");
         };
     }
 
@@ -71,28 +167,33 @@ public class FscrawlerApplication {
                 .map(element -> element.attr("abs:href"))
                 .filter(href -> href != null && !href.isBlank())
                 .map(this::normalize)
-                .filter(href -> href != null && href.contains(TARGET_FRAGMENT))
+                .filter(href -> href != null && (href.contains(SEARCHCOUNTRY_FRAGMENT) || href.contains(SEARCHHOTEL_FRAGMENT) || href.contains(HOTEL_FRAGMENT)))
                 .forEach(result::add);
 
         log.debug("После фильтрации получено {} уникальных ссылок", result.size());
         return result;
     }
 
-    private void checkLink(RestTemplate restTemplate, String link) {
+    private boolean checkLink(RestTemplate restTemplate, String link, String page, List<String> rows) {
         log.debug("Проверка ссылки: {}", link);
         String body = fetchBody(restTemplate, link);
         if (body == null) {
             log.warn("Ссылка недоступна: {}", link);
-            System.out.println(link + " ОШИБКА: НЕ ОТКРЫВАЕТСЯ");
-            return;
+            rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " ВЕРНУЛОСЬ ПУСТОЕ ТЕЛО СТРАНИЦЫ " + link);
+            return false;
         }
 
-        if (body.contains(NO_RESULTS_TEXT)) {
-            log.info("По ссылке нет выдачи: {}", link);
-            System.out.println(link + " ОШИБКА: НЕТ ВЫДАЧИ");
+        if (body.contains(ZERO_OFFERS)) {
+            log.warn("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
+            rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
+            return false;
+        } else if (body.contains(NO_RESULTS_TEXT)) {
+            log.warn("По ссылке нет выдачи: {}", link);
+            rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " НЕ НАШЛИ ВАРИАНТОВ " + link);
+            return false;
         } else {
-            log.info("Ссылка успешно открыта с выдачей: {}", link);
-            System.out.println(link + " ОК");
+            log.info("ОК {}", link);
+            return true;
         }
     }
 

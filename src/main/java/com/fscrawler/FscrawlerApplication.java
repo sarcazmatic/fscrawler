@@ -1,7 +1,5 @@
 package com.fscrawler;
 
-import com.opencsv.CSVReader;
-import com.opencsv.exceptions.CsvException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -15,21 +13,21 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,7 +37,6 @@ import java.util.stream.Collectors;
 public class FscrawlerApplication {
 
     private static final Logger log = LoggerFactory.getLogger(FscrawlerApplication.class);
-    private static final List<String> SOURCE_URLS = new ArrayList<>();
     private static final String SEARCHCOUNTRY_FRAGMENT = "fstravel.com/searchtour/";
     private static final String SEARCHHOTEL_FRAGMENT = "fstravel.com/searchhotel/";
     private static final String HOTEL_FRAGMENT = "fstravel.com/hotel/";
@@ -63,44 +60,35 @@ public class FscrawlerApplication {
     }
 
     @Bean
-    public List<String> linksImporter() throws IOException, CsvException {
-        String spreadsheetId = "1H0nXQfaWJmCYMskwa04ZMKGfuoUMHZC6h4SwmEusZE0";
-        String sheetGid = "0";
-
-        String urlStr = String.format(
-                "https://docs.google.com/spreadsheets/d/%s/export?format=csv&gid=%s",
-                spreadsheetId, sheetGid
-        );
-
-        URL url = new URL(urlStr);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-
-        try (CSVReader reader = new CSVReader(new InputStreamReader(conn.getInputStream()))) {
-            reader.readAll().forEach(r -> SOURCE_URLS.add(r[0]));
-            log.info("Найдено " + SOURCE_URLS.size() + " ссылок.");
-            return SOURCE_URLS;
-        }
-    }
-
-    @Bean
     CommandLineRunner crawl(RestTemplate restTemplate) {
         log.debug("Инициализация CommandLineRunner для обхода ссылок");
-        String[] strings = fetchBody(restTemplate, "https://www.fstravel.com").split("buttonLink&quot;:&quot;");
+        String[] strings = fetchBody(restTemplate, "https://www.fstravel.com").split(MAIN_PAGE_SLIDER_FINDER);
         List<String> sliderLinks = new ArrayList<>();
         for (int i = 2; i < strings.length; i++) {
-            String extractedSliderLink = strings[i].substring(0, strings[i].indexOf('&')).replace("\\", "");
-            StringBuilder finalExtractedSliderLink = new StringBuilder();
-            if (extractedSliderLink.startsWith("https://fstravel.com")) {
-                sliderLinks.add(extractedSliderLink);
-            } else if (extractedSliderLink.startsWith("https://")) {
-            } else {
-                if (extractedSliderLink.startsWith("/")) {
-                    finalExtractedSliderLink.append("https://fstravel.com").append(extractedSliderLink);
+            String[] extractedSliderShowToRaw = Arrays.stream(strings[i].split("slideShowTo&quot;:")).limit(2).toArray(String[]::new);
+            String extractedSliderShowToRawClean = extractedSliderShowToRaw[1].substring(0, extractedSliderShowToRaw[1].indexOf(','));
+            ZonedDateTime showTillBarrier = ZonedDateTime.now(ZoneId.of("Europe/Moscow"));
+            if (!extractedSliderShowToRawClean.equals("null")) {
+                Long showTill = Long.parseLong(extractedSliderShowToRawClean);
+                Instant instant = Instant.ofEpochSecond(showTill);
+                showTillBarrier = instant.atZone(ZoneId.of("Europe/Moscow"));
+            }
+
+            if (extractedSliderShowToRawClean.equals("null") || showTillBarrier.isAfter(ZonedDateTime.now(ZoneId.of("Europe/Moscow")))) {
+
+                String extractedSliderLink = strings[i].substring(0, strings[i].indexOf('&')).replace("\\", "");
+                StringBuilder finalExtractedSliderLink = new StringBuilder();
+                if (extractedSliderLink.startsWith("https://fstravel.com")) {
+                    sliderLinks.add(extractedSliderLink);
+                } else if (extractedSliderLink.startsWith("https://")) {
                 } else {
-                    finalExtractedSliderLink.append("https://fstravel.com/").append(extractedSliderLink);
+                    if (extractedSliderLink.startsWith("/")) {
+                        finalExtractedSliderLink.append("https://fstravel.com").append(extractedSliderLink);
+                    } else {
+                        finalExtractedSliderLink.append("https://fstravel.com/").append(extractedSliderLink);
+                    }
+                    sliderLinks.add(finalExtractedSliderLink.toString());
                 }
-                sliderLinks.add(finalExtractedSliderLink.toString());
             }
         }
         for (String s : sliderLinks) {
@@ -113,7 +101,7 @@ public class FscrawlerApplication {
                 Path path = Paths.get(fileName);
                 List<String> rows = new ArrayList<>();
 
-                for (String s : SOURCE_URLS) {
+                for (String s : sliderLinks) {
                     log.info("Начало обхода страницы: {}", s);
                     rows.add("Начало обхода страницы: " + s);
                     String html = fetchBody(restTemplate, s);

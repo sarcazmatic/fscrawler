@@ -39,8 +39,11 @@ public class FscrawlerApplication {
     private static final Logger log = LoggerFactory.getLogger(FscrawlerApplication.class);
     private static final String SEARCHCOUNTRY_FRAGMENT = "fstravel.com/searchtour/";
     private static final String SEARCHHOTEL_FRAGMENT = "fstravel.com/searchhotel/";
+    private static final String EXCURSION_TOUR = "fstravel.com/excursiontour/";
+
     private static final String HOTEL_FRAGMENT = "fstravel.com/hotel/";
     private static final String NO_RESULTS_TEXT = "Мы не нашли вариантов";
+    private static final String STILL_SEARCHING_TEXT = "Ищем подходящие предложения";
     private static final String QUICK_SELECTION_FAIL = "Поиск не дал результатов";
     private static final String ZERO_OFFERS = "найдено 0 предложений";
     private static final String MAIN_PAGE_SLIDER_FINDER = "buttonLink&quot;:&quot;";
@@ -62,40 +65,41 @@ public class FscrawlerApplication {
     @Bean
     CommandLineRunner crawl(RestTemplate restTemplate) {
         log.debug("Инициализация CommandLineRunner для обхода ссылок");
-        String[] strings = fetchBody(restTemplate, "https://www.fstravel.com").split(MAIN_PAGE_SLIDER_FINDER);
-        List<String> sliderLinks = new ArrayList<>();
-        for (int i = 2; i < strings.length; i++) {
-            String[] extractedSliderShowToRaw = Arrays.stream(strings[i].split("slideShowTo&quot;:")).limit(2).toArray(String[]::new);
-            String extractedSliderShowToRawClean = extractedSliderShowToRaw[1].substring(0, extractedSliderShowToRaw[1].indexOf(','));
-            ZonedDateTime showTillBarrier = ZonedDateTime.now(ZoneId.of("Europe/Moscow"));
-            if (!extractedSliderShowToRawClean.equals("null")) {
-                Long showTill = Long.parseLong(extractedSliderShowToRawClean);
-                Instant instant = Instant.ofEpochSecond(showTill);
-                showTillBarrier = instant.atZone(ZoneId.of("Europe/Moscow"));
-            }
+        return args -> {
+            String[] strings = fetchBody(restTemplate, "https://www.fstravel.com").split(MAIN_PAGE_SLIDER_FINDER);
+            List<String> sliderLinks = new ArrayList<>();
+            for (int i = 2; i < strings.length; i++) {
+                String[] extractedSliderShowToRaw = Arrays.stream(strings[i].split("slideShowTo&quot;:")).limit(2).toArray(String[]::new);
+                String extractedSliderShowToRawClean = extractedSliderShowToRaw[1].substring(0, extractedSliderShowToRaw[1].indexOf(','));
+                ZonedDateTime showTillBarrier = ZonedDateTime.now(ZoneId.of("Europe/Moscow"));
+                if (!extractedSliderShowToRawClean.equals("null")) {
+                    Long showTill = Long.parseLong(extractedSliderShowToRawClean);
+                    Instant instant = Instant.ofEpochSecond(showTill);
+                    showTillBarrier = instant.atZone(ZoneId.of("Europe/Moscow"));
+                }
 
-            if (extractedSliderShowToRawClean.equals("null") || showTillBarrier.isAfter(ZonedDateTime.now(ZoneId.of("Europe/Moscow")))) {
+                if (extractedSliderShowToRawClean.equals("null") || showTillBarrier.isAfter(ZonedDateTime.now(ZoneId.of("Europe/Moscow")))) {
 
-                String extractedSliderLink = strings[i].substring(0, strings[i].indexOf('&')).replace("\\", "");
-                StringBuilder finalExtractedSliderLink = new StringBuilder();
-                if (extractedSliderLink.startsWith("https://fstravel.com")) {
-                    sliderLinks.add(extractedSliderLink);
-                } else if (extractedSliderLink.startsWith("https://")) {
-                } else {
-                    if (extractedSliderLink.startsWith("/")) {
-                        finalExtractedSliderLink.append("https://fstravel.com").append(extractedSliderLink);
+                    String extractedSliderLink = strings[i].substring(0, strings[i].indexOf('&')).replace("\\", "");
+                    StringBuilder finalExtractedSliderLink = new StringBuilder();
+                    if (extractedSliderLink.startsWith("https://fstravel.com")) {
+                        sliderLinks.add(extractedSliderLink);
+                    } else if (extractedSliderLink.startsWith("https://")) {
                     } else {
-                        finalExtractedSliderLink.append("https://fstravel.com/").append(extractedSliderLink);
+                        if (extractedSliderLink.startsWith("/")) {
+                            finalExtractedSliderLink.append("https://fstravel.com").append(extractedSliderLink);
+                        } else {
+                            finalExtractedSliderLink.append("https://fstravel.com/").append(extractedSliderLink);
+                        }
+                        sliderLinks.add(finalExtractedSliderLink.toString());
                     }
-                    sliderLinks.add(finalExtractedSliderLink.toString());
                 }
             }
-        }
-        for (String s : sliderLinks) {
-            log.info("Обработали ссылку -- {}", s);
-        }
-        return args -> {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+            for (String s : sliderLinks) {
+                log.info("Обработали ссылку -- {}", s);
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
             String fileName = LocalDateTime.now(ZoneId.of("Europe/Moscow")).format(formatter) + ".csv";
             try {
                 Path path = Paths.get(fileName);
@@ -108,11 +112,11 @@ public class FscrawlerApplication {
                     if (html == null) {
                         log.error("Не удалось загрузить страницу: {}", s);
                         rows.add("ПРОБЛЕМА! Не удалось загрузить страницу: " + s);
-                        return;
+                        continue;
                     } else if (html.contains(QUICK_SELECTION_FAIL)) {
                         log.error("На странице {} ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ", s);
                         rows.add("ОШИБКА! На странице " + s + " ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ");
-                        return;
+                        continue;
                     }
 
                     Set<String> links = extractTargetLinks(html, s);
@@ -155,7 +159,7 @@ public class FscrawlerApplication {
                 .map(element -> element.attr("abs:href"))
                 .filter(href -> href != null && !href.isBlank())
                 .map(this::normalize)
-                .filter(href -> href != null && (href.contains(SEARCHCOUNTRY_FRAGMENT) || href.contains(SEARCHHOTEL_FRAGMENT) || href.contains(HOTEL_FRAGMENT)))
+                .filter(href -> href != null && (href.contains(SEARCHCOUNTRY_FRAGMENT) || href.contains(SEARCHHOTEL_FRAGMENT) || href.contains(HOTEL_FRAGMENT) || href.contains(EXCURSION_TOUR)))
                 .forEach(result::add);
 
         log.debug("После фильтрации получено {} уникальных ссылок", result.size());
@@ -174,6 +178,10 @@ public class FscrawlerApplication {
         if (body.contains(ZERO_OFFERS)) {
             log.warn("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
             rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
+            return false;
+        } else if (body.contains(STILL_SEARCHING_TEXT)) {
+            log.warn("Долгий поиск!: {}", link);
+            rows.add("ПРОВЕРИТЬ: ТАЙМАУТ НА СТРАНИЦЕ " + page + " ПО ССЫЛКЕ " + link);
             return false;
         } else if (body.contains(NO_RESULTS_TEXT)) {
             log.warn("По ссылке нет выдачи: {}", link);

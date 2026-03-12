@@ -2,6 +2,13 @@ package com.fscrawler;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.openqa.selenium.By;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -68,6 +75,7 @@ public class FscrawlerApplication {
         return args -> {
             String[] strings = fetchBody(restTemplate, "https://www.fstravel.com").split(MAIN_PAGE_SLIDER_FINDER);
             List<String> sliderLinks = new ArrayList<>();
+            List<String> sliderLinksSearch = new ArrayList<>();
             for (int i = 2; i < strings.length; i++) {
                 String[] extractedSliderShowToRaw = Arrays.stream(strings[i].split("slideShowTo&quot;:")).limit(2).toArray(String[]::new);
                 String extractedSliderShowToRawClean = extractedSliderShowToRaw[1].substring(0, extractedSliderShowToRaw[1].indexOf(','));
@@ -83,7 +91,7 @@ public class FscrawlerApplication {
                     String extractedSliderLink = strings[i].substring(0, strings[i].indexOf('&')).replace("\\", "");
                     StringBuilder finalExtractedSliderLink = new StringBuilder();
                     if (extractedSliderLink.startsWith("https://fstravel.com")) {
-                        sliderLinks.add(extractedSliderLink);
+                        sliderLinksSearch.add(extractedSliderLink);
                     } else if (extractedSliderLink.startsWith("https://")) {
                     } else {
                         if (extractedSliderLink.startsWith("/")) {
@@ -95,15 +103,36 @@ public class FscrawlerApplication {
                     }
                 }
             }
+            for (String s : sliderLinksSearch) {
+                log.info("Ссылка на поиск тура в слайдере -- {}", s);
+            }
             for (String s : sliderLinks) {
                 log.info("Обработали ссылку -- {}", s);
             }
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss");
-            String fileName = LocalDateTime.now(ZoneId.of("Europe/Moscow")).format(formatter) + ".csv";
+            String fileName = "reports/" + LocalDateTime.now(ZoneId.of("Europe/Moscow")).format(formatter) + ".txt";
             try {
                 Path path = Paths.get(fileName);
                 List<String> rows = new ArrayList<>();
+                log.info("Найдено {} ссылок c поиском в слайдере", sliderLinksSearch.size());
+                for (String s : sliderLinksSearch) {
+                    log.info("Обход страницы поиска из слайдера: {}", s);
+                    rows.add("Обход страницы поиска из слайдера: " + s);
+                    String html = fetchBody(restTemplate, s);
+                    if (html == null) {
+                        log.error("Не удалось загрузить страницу поиска из слайдера: {}", s);
+                        rows.add("ПРОБЛЕМА! Не удалось загрузить страницу поиска из слайдера: " + s + "\n");
+                        continue;
+                    }
+                    if (checkLink(restTemplate, s, s, rows)) {
+                        log.info("Страница {} проанализирована. Успех!", s);
+                        rows.add("Страница проанализирована. Успех!\n");
+                    } else {
+                        log.info("ОШИБКА! Страница поиска из слайдера: {}", s);
+                        rows.add("ОШИБКА! СТРАНИЦА ПОИСКА ИЗ СЛАЙДЕРА: " + s + "\n");
+                    }
+                }
 
                 for (String s : sliderLinks) {
                     log.info("Начало обхода страницы: {}", s);
@@ -111,11 +140,11 @@ public class FscrawlerApplication {
                     String html = fetchBody(restTemplate, s);
                     if (html == null) {
                         log.error("Не удалось загрузить страницу: {}", s);
-                        rows.add("ПРОБЛЕМА! Не удалось загрузить страницу: " + s);
+                        rows.add("ПРОБЛЕМА! Не удалось загрузить страницу: " + s + "\n");
                         continue;
                     } else if (html.contains(QUICK_SELECTION_FAIL)) {
                         log.error("На странице {} ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ", s);
-                        rows.add("ОШИБКА! На странице " + s + " ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ");
+                        rows.add("ОШИБКА ОТОБРАЖЕНИЯ ПРОСТОЙ ПОДБОРКИ НА СТРАНИЦЕ " + s);
                         continue;
                     }
 
@@ -130,7 +159,7 @@ public class FscrawlerApplication {
                             no++;
                         }
                     }
-                    log.info("Обход ссылок завершен. На странице " + s + " успешно открыто: " + ok + ". Неуспешно: " + no);
+                    log.info("Обход ссылок завершен. На странице {} успешно открыто: {}. Неуспешно: {}", s, ok, no);
                     rows.add("Обход ссылок завершен. На странице " + s + " успешно открыто: " + ok + ". Неуспешно: " + no + "\n");
 
                 }
@@ -169,27 +198,60 @@ public class FscrawlerApplication {
     private boolean checkLink(RestTemplate restTemplate, String link, String page, List<String> rows) {
         log.debug("Проверка ссылки: {}", link);
         String body = fetchBody(restTemplate, link);
-        if (body == null) {
-            log.warn("Ссылка недоступна: {}", link);
-            rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " ВЕРНУЛОСЬ ПУСТОЕ ТЕЛО СТРАНИЦЫ " + link);
+        try {
+            if (body.contains(ZERO_OFFERS)) {
+                log.error("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
+                rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link + " НА СТРАНИЦЕ " + page);
+                return false;
+            } else if (body.contains(STILL_SEARCHING_TEXT)) {
+                log.warn("Долгий поиск!: {}. Перепроверяем", link);
+                String test = fetchBodyWithSelenium(link);
+                if (test.equals("TIMEOUT")) {
+                    log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
+                    rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link + " со страницы " + page);
+                    return true;
+                } else {
+                    log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
+                    rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link + " СО СТРАНИЦЫ " + page);
+                    return false;
+                }
+            } else if (body.contains(NO_RESULTS_TEXT)) {
+                log.error("По ссылке нет выдачи: {}", link);
+                rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " НЕ НАШЛИ ВАРИАНТОВ " + link);
+                return false;
+            } else {
+                log.info("ОК {}", link);
+                return true;
+            }
+        } catch (NullPointerException e) {
+            log.error("Непредвиденная ошибка при переходе со страницы {} по ссылке {}", page, link);
+            rows.add("Непредвиденная ошибка при переходе со страницы " + page + " по ссылке " + link);
             return false;
         }
+    }
 
-        if (body.contains(ZERO_OFFERS)) {
-            log.warn("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
-            rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
-            return false;
-        } else if (body.contains(STILL_SEARCHING_TEXT)) {
-            log.warn("Долгий поиск!: {}", link);
-            rows.add("ПРОВЕРИТЬ: ТАЙМАУТ НА СТРАНИЦЕ " + page + " ПО ССЫЛКЕ " + link);
-            return false;
-        } else if (body.contains(NO_RESULTS_TEXT)) {
-            log.warn("По ссылке нет выдачи: {}", link);
-            rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " НЕ НАШЛИ ВАРИАНТОВ " + link);
-            return false;
-        } else {
-            log.info("ОК {}", link);
-            return true;
+    private String fetchBodyWithSelenium(String url) {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--window-size=1920,1080");
+
+        WebDriver driver = new ChromeDriver(options);
+
+        try {
+            driver.get(url);
+
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+            wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.cssSelector("section.not-result")
+            ));
+
+            return driver.getPageSource();
+        } catch (TimeoutException e) {
+            return "TIMEOUT";
+        } finally {
+            driver.quit();
         }
     }
 

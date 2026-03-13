@@ -206,14 +206,18 @@ public class FscrawlerApplication {
             } else if (body.contains(STILL_SEARCHING_TEXT)) {
                 log.warn("Долгий поиск!: {}. Перепроверяем", link);
                 String test = fetchBodyWithSelenium(link);
-                if (test.equals("TIMEOUT")) {
-                    log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
-                    rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);
-                    return true;
-                } else {
+                if (test.contains(ZERO_OFFERS)) {
+                    log.error("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
+                    rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
+                    return false;
+                } else if (test.contains(NO_RESULTS_TEXT)) {
                     log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
                     rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                     return false;
+                } else {
+                    log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
+                    rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);
+                    return true;
                 }
             } else if (body.contains(NO_RESULTS_TEXT)) {
                 log.error("По ссылке нет выдачи: {}", link);
@@ -249,7 +253,7 @@ public class FscrawlerApplication {
 
             return driver.getPageSource();
         } catch (TimeoutException e) {
-            return "TIMEOUT";
+            return driver.getPageSource();
         } finally {
             driver.quit();
         }

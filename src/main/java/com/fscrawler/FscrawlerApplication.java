@@ -214,6 +214,9 @@ public class FscrawlerApplication {
                     log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
                     rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                     return false;
+                } else if (test.contains("swiper-slide swiper-slide-active search-card-gallery__slide")) {
+                    log.error("SEL УСПЕХ: Проверка нашла результаты выдачи по ссылке {} со страницы {}", link, page);
+                    return true;
                 } else {
                     log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
                     rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);

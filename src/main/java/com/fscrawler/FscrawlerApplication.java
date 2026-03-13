@@ -201,18 +201,18 @@ public class FscrawlerApplication {
         try {
             if (body.contains(ZERO_OFFERS)) {
                 log.error("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
-                rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link + " НА СТРАНИЦЕ " + page);
+                rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                 return false;
             } else if (body.contains(STILL_SEARCHING_TEXT)) {
                 log.warn("Долгий поиск!: {}. Перепроверяем", link);
                 String test = fetchBodyWithSelenium(link);
                 if (test.equals("TIMEOUT")) {
                     log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
-                    rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link + " со страницы " + page);
+                    rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);
                     return true;
                 } else {
                     log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
-                    rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link + " СО СТРАНИЦЫ " + page);
+                    rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                     return false;
                 }
             } else if (body.contains(NO_RESULTS_TEXT)) {

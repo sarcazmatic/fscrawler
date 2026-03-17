@@ -203,6 +203,10 @@ public class FscrawlerApplication {
                 log.error("По ссылке нет предложений. Фильтр 'Найдено предложений': {}", link);
                 rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                 return false;
+            } else if (body.contains(NO_RESULTS_TEXT)) {
+                log.error("По ссылке нет выдачи: {}", link);
+                rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " НЕ НАШЛИ ВАРИАНТОВ " + link);
+                return false;
             } else if (body.contains(STILL_SEARCHING_TEXT)) {
                 log.warn("Долгий поиск!: {}. Перепроверяем", link);
                 String test = fetchBodyWithSelenium(link);
@@ -214,25 +218,21 @@ public class FscrawlerApplication {
                     log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
                     rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                     return false;
-                } else if (test.contains("swiper-slide swiper-slide-active search-card-gallery__slide")) {
-                    log.error("SEL УСПЕХ: Проверка нашла результаты выдачи по ссылке {} со страницы {}", link, page);
+                } else if (test.contains("swiper-slide-active")) {
+                    log.info("SEL УСПЕХ: Проверка нашла результаты выдачи по ссылке {} со страницы {}", link, page);
                     return true;
                 } else {
                     log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
                     rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);
                     return true;
                 }
-            } else if (body.contains(NO_RESULTS_TEXT)) {
-                log.error("По ссылке нет выдачи: {}", link);
-                rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " НЕ НАШЛИ ВАРИАНТОВ " + link);
-                return false;
             } else {
                 log.info("ОК {}", link);
                 return true;
             }
         } catch (NullPointerException e) {
             log.error("Непредвиденная ошибка при переходе со страницы {} по ссылке {}", page, link);
-            rows.add("Непредвиденная ошибка при переходе со страницы " + page + " по ссылке " + link);
+            rows.add("НЕПРЕДВИДЕННАЯ ОШИБКА при переходе по ссылке " + link);
             return false;
         }
     }
@@ -244,11 +244,10 @@ public class FscrawlerApplication {
         options.addArguments("--window-size=1920,1080");
 
         WebDriver driver = new ChromeDriver(options);
+        driver.get(url);
 
         try {
-            driver.get(url);
-
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(25));
 
             wait.until(ExpectedConditions.presenceOfElementLocated(
                     By.cssSelector("section.not-result")
@@ -256,6 +255,8 @@ public class FscrawlerApplication {
 
             return driver.getPageSource();
         } catch (TimeoutException e) {
+            driver.get(url);
+
             return driver.getPageSource();
         } finally {
             driver.quit();

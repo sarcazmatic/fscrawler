@@ -1,0 +1,69 @@
+Обход страницы поиска из слайдера: https://fstravel.com/searchtour/country/europe/turkey?departureCityId=274286
+Страница проанализирована. Успех!
+
+Обход страницы поиска из слайдера: https://fstravel.com/hotel/europe/turkey/kemer/beldibi/wb-travel-anita-matiate?minStartDate=2026-06-06
+Страница проанализирована. Успех!
+
+Обход страницы поиска из слайдера: https://fstravel.com/searchtour/country/europe/turkey?departureCityId=274286
+Страница проанализирована. Успех!
+
+Обход страницы поиска из слайдера: https://fstravel.com/hotel/europe/turkey/kemer/beldibi/rixos-sungate?hotelIds=30356,30356
+Страница проанализирована. Успех!
+
+Обход страницы поиска из слайдера: https://fstravel.com/searchtour/country/europe/turkey?departureCityId=274286
+Страница проанализирована. Успех!
+
+Начало обхода страницы: https://fstravel.com/actions/ranneye-bronirovaniye-leto-2026
+ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке https://fstravel.com/searchtour/country/africa/egypt?departureCityId=274286&arrivalCountryId=18498&minStartDate=2026-05-17&maxStartDate=2026-05-21&minNightsCount=6&maxNightsCount=6&adults=2&flightTypes=all
+ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке https://fstravel.com/searchtour/country/asia/sri-lanka?departureCityId=274286&arrivalCountryId=20629&minStartDate=2026-04-01&maxStartDate=2026-04-05&minNightsCount=13&maxNightsCount=13&adults=2&flightTypes=regular
+Обход ссылок завершен. На странице https://fstravel.com/actions/ranneye-bronirovaniye-leto-2026 успешно открыто: 7. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/tury-na-prazdniki
+Обход ссылок завершен. На странице https://fstravel.com/tury-na-prazdniki успешно открыто: 49. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/actions/rannee-bronirovanie-zima-2026-2027
+ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке https://fstravel.com/searchtour/country/europe/turkey?departureCityId=274286&arrivalCountryId=18803&minStartDate=2026-10-24&maxStartDate=2026-10-26&minNightsCount=4&maxNightsCount=9&adults=2&flightTypes=all
+Обход ссылок завершен. На странице https://fstravel.com/actions/rannee-bronirovanie-zima-2026-2027 успешно открыто: 12. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/sakhalin-tours 
+Обход ссылок завершен. На странице https://fstravel.com/sakhalin-tours  успешно открыто: 12. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/certificates
+Обход ссылок завершен. На странице https://fstravel.com/certificates успешно открыто: 0. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/oteli-funsun-wb-travel-concept
+Обход ссылок завершен. На странице https://fstravel.com/oteli-funsun-wb-travel-concept успешно открыто: 4. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/azerbaidzan-sea-breeze-resort-na-kaspiiskom-pobereze
+Обход ссылок завершен. На странице https://fstravel.com/azerbaidzan-sea-breeze-resort-na-kaspiiskom-pobereze успешно открыто: 9. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/funsun-senses-oteli-gde-chuvstva-stanovyatsya-yarche
+Обход ссылок завершен. На странице https://fstravel.com/funsun-senses-oteli-gde-chuvstva-stanovyatsya-yarche успешно открыто: 1. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/country/asia/vietnam
+ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке https://fstravel.com/searchtour/country/asia/vietnam
+ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке https://fstravel.com/searchhotel/country/asia/vietnam?
+Обход ссылок завершен. На странице https://fstravel.com/country/asia/vietnam успешно открыто: 5. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/otdyx-v-tanzanii
+Обход ссылок завершен. На странице https://fstravel.com/otdyx-v-tanzanii успешно открыто: 1. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/gornolyznye-tury
+Обход ссылок завершен. На странице https://fstravel.com/gornolyznye-tury успешно открыто: 13. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/thailand
+ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ https://fstravel.com/searchtour/resort/asia/thailand/phuket?departureCityId=338248&arrivalCountryId=20625&arrivalRegionIds=118846&minStartDate=2024-04-11&maxStartDate=2024-04-11&minNightsCount=11&maxNightsCount=11&adults=2&flightTypes=charter&sort=max
+ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ https://fstravel.com/searchtour/resort/asia/thailand/phuket?departureCityId=708872&arrivalCountryId=20625&arrivalRegionIds=118846&minStartDate=2024-04-12&maxStartDate=2024-04-12&minNightsCount=11&maxNightsCount=11&adults=2&flightTypes=charter&sort=max
+ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ https://fstravel.com/searchtour/country/asia/thailand?departureCityId=526606&minStartDate=2026-04-10&maxStartDate=2026-04-10&minNightsCount=7&maxNightsCount=12&adults=2&flightTypes=charter&sort=recommendations_FS&arrivalCountryId=20625
+Обход ссылок завершен. На странице https://fstravel.com/thailand успешно открыто: 15. Неуспешно: 3
+
+Начало обхода страницы: https://fstravel.com/megasou-v-funsun-festival-fiksiki-v-egipte
+Обход ссылок завершен. На странице https://fstravel.com/megasou-v-funsun-festival-fiksiki-v-egipte успешно открыто: 5. Неуспешно: 0
+
+Начало обхода страницы: https://fstravel.com/duxovno-poznavatelnye-tury
+ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ https://fstravel.com/searchhotel/resort/europe/russia/zolotoe-koltso?departureCityId=1&arrivalCountryId=210357&arrivalRegionIds=243647&minStartDate=2024-11-16&maxStartDate=2024-11-16&minNightsCount=1&maxNightsCount=2&adults=2&sort=recommendations_FS&hotelName=Суздаль+—+сладко-музейный+город-уникум+(1+день)
+Обход ссылок завершен. На странице https://fstravel.com/duxovno-poznavatelnye-tury успешно открыто: 5. Неуспешно: 1
+
+Начало обхода страницы: https://fstravel.com/eksklyuzivnyi-servis-sunrise-posh-club
+Обход ссылок завершен. На странице https://fstravel.com/eksklyuzivnyi-servis-sunrise-posh-club успешно открыто: 8. Неуспешно: 0
+

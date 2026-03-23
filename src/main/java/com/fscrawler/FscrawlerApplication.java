@@ -218,12 +218,16 @@ public class FscrawlerApplication {
                     log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
                     rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
                     return false;
-                } else if (test.contains("swiper-slide-active")) {
+                } else if (test.contains(STILL_SEARCHING_TEXT)) {
+                    log.error("SEL ОШИБКА: за 25 секунд не нашлось результатов по ссылке {}", link);
+                    rows.add("ОШИБКА: за 25 секунд не нашлось результатов по ссылке " + link);
+                    return false;
+                } else if (!test.contains(ZERO_OFFERS)) {
                     log.info("SEL УСПЕХ: Проверка нашла результаты выдачи по ссылке {} со страницы {}", link, page);
                     return true;
                 } else {
                     log.warn("SEL ОК: Проверка не подтвердила пустую выдачу по ссылке {} со страницы {}", link, page);
-                    rows.add("ПРОВЕРКА: за 15 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);
+                    rows.add("ПРОВЕРКА: за 25 секунд НЕ ПОДТВЕРДИЛАСЬ пустая выдача по ссылке " + link);
                     return true;
                 }
             } else {

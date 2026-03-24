@@ -205,7 +205,7 @@ public class FscrawlerApplication {
                 return false;
             } else if (body.contains(NO_RESULTS_TEXT)) {
                 log.error("По ссылке нет выдачи: {}", link);
-                rows.add("ОШИБКА: НА СТРАНИЦЕ " + page + " НЕ НАШЛИ ВАРИАНТОВ " + link);
+                rows.add("ОШИБКА: НЕ НАШЛИ ВАРИАНТОВ ПО ССЫЛКЕ " + link);
                 return false;
             } else if (body.contains(STILL_SEARCHING_TEXT)) {
                 log.warn("Долгий поиск!: {}. Перепроверяем", link);
@@ -216,11 +216,11 @@ public class FscrawlerApplication {
                     return false;
                 } else if (test.contains(NO_RESULTS_TEXT)) {
                     log.error("SEL ОШИБКА: Проверка выдала 0 результатов по ссылке {} со страницы {}", link, page);
-                    rows.add("ОШИБКА: 0 ПРЕДЛОЖЕНИЙ ПО ССЫЛКЕ " + link);
+                    rows.add("ОШИБКА: НЕ НАШЛИ ВАРИАНТОВ ПО ССЫЛКЕ " + link);
                     return false;
                 } else if (test.contains(STILL_SEARCHING_TEXT)) {
-                    log.error("SEL ОШИБКА: за 25 секунд не нашлось результатов по ссылке {}", link);
-                    rows.add("ОШИБКА: за 25 секунд не нашлось результатов по ссылке " + link);
+                    log.error("SEL ПРОВЕРКА: за 25 секунд не нашлось результатов по ссылке {}", link);
+                    rows.add("ПРОВЕРКА: за 25 секунд не нашлось результатов по ссылке " + link);
                     return false;
                 } else if (!test.contains(ZERO_OFFERS)) {
                     log.info("SEL УСПЕХ: Проверка нашла результаты выдачи по ссылке {} со страницы {}", link, page);

@@ -34,7 +34,7 @@
 Обход ссылок завершен. На странице https://fstravel.com/certificates успешно открыто: 0. Неуспешно: 0
 
 Начало обхода страницы: https://fstravel.com/oteli-funsun-wb-travel-concept
-Обход ссылок завершен. На странице https://fstravel.com/oteli-funsun-wb-travel-concept успешно открыто: 4. Неуспешно: 0
+Обход ссылок завершен. На странице https://fstravel.com/oteli-funsun-wb-travel-concept успешно открыто: 3. Неуспешно: 0
 
 Начало обхода страницы: https://fstravel.com/azerbaidzan-sea-breeze-resort-na-kaspiiskom-pobereze
 Обход ссылок завершен. На странице https://fstravel.com/azerbaidzan-sea-breeze-resort-na-kaspiiskom-pobereze успешно открыто: 9. Неуспешно: 0
